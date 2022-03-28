@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Contracts.Configurations
 {
-    public static class MassTransientConfigureExtesion
+    public static class MassTransientConfigureExtension
     {
         public static void AddMassTransientWithRabbitMQ(this IServiceCollection services, 
             Func<RabbitMQSettings> rabbitSettings,
@@ -28,11 +28,20 @@ namespace Contracts.Configurations
 
                 x.UsingRabbitMq((context, cfg) =>
                 {
-                    cfg.Host(settings.Host, settings.VirtualHost, conf =>
+                    Action<IRabbitMqHostConfigurator> action = (c) => 
                     {
-                        conf.Username(settings.Username);
-                        conf.Password(settings.Password);
-                    });
+                        c.Username(settings.Username);
+                        c.Password(settings.Password);
+                    };
+
+                    if (string.IsNullOrWhiteSpace(settings.VirtualHost))
+                    {
+                        cfg.Host(settings.Host, conf => action?.Invoke(conf));
+                    }
+                    else
+                    {
+                        cfg.Host(settings.Host, settings.VirtualHost, conf => action?.Invoke(conf));
+                    }
 
                     cfg.ConfigureEndpoints(context);
                 });
